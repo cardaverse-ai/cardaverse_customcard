@@ -1,14 +1,15 @@
-// server.js
 import express from 'express';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import { Shopify, ApiVersion } from '@shopify/shopify-api';
 
+// Load environment variables
 dotenv.config();
+
 const app = express();
 const upload = multer();
 
-// 1) Init Shopify API client
+// 1) Initialize Shopify API context for HMAC verification and Admin REST calls
 Shopify.Context.initialize({
   API_KEY:         process.env.SHOPIFY_API_KEY,
   API_SECRET_KEY:  process.env.SHOPIFY_API_SECRET,
@@ -19,42 +20,48 @@ Shopify.Context.initialize({
   SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
 });
 
-// 2) (Optional) verify HMAC if you’re NOT using an App Proxy
-//    — skip this if you’ve configured an App Proxy in Shopify to `/apps/card-designer`
+// 2) Middleware: verify HMAC on incoming requests (when not using App Proxy)
 function verifyHMAC(req, res, next) {
-  // parse req.query.signature & timestamp…
-  // use Shopify.Utils.validateHmac(req.query, process.env.SHOPIFY_API_SECRET)
+  const valid = Shopify.Utils.validateHmac(req.query, process.env.SHOPIFY_API_SECRET);
+  if (!valid) {
+    console.error('HMAC validation failed:', req.query);
+    return res.status(401).send('HMAC validation failed');
+  }
   next();
 }
 
-// 3) The upload endpoint
+// 3) Upload endpoint
 app.post(
   '/upload',
-  /* verifyHMAC, */     // uncomment if no App Proxy
+  verifyHMAC,
   upload.single('pdf'),
   async (req, res) => {
     try {
-      const shop = req.query.shop;                // if via App Proxy, Shopify injects `?shop=…`
-      const pdfBuffer = req.file.buffer;          // the incoming PDF blob
+      // Ensure shop param
+      const shop = req.query.shop;
+      if (!shop) return res.status(400).json({ error: 'Missing shop parameter' });
+
+      // Ensure file buffer
+      const pdfBuffer = req.file?.buffer;
+      if (!pdfBuffer) return res.status(400).json({ error: 'No PDF file uploaded' });
+
+      // Convert PDF to Base64
       const base64Attachment = pdfBuffer.toString('base64');
 
-      // call Shopify Admin Files API
-      const client = new Shopify.Clients.Rest(
-        shop,
-        process.env.SHOPIFY_ADMIN_TOKEN
-      );
+      // Upload to Shopify Files
+      const client = new Shopify.Clients.Rest(shop, process.env.SHOPIFY_ADMIN_TOKEN);
       const response = await client.post({
         path: 'files',
         data: {
           file: {
             attachment: base64Attachment,
             filename: `user_design_${Date.now()}.pdf`,
-            // public_url: true   // if you want a public URL immediately
           }
         },
         type: 'application/json',
       });
 
+      // Return the public URL of the uploaded PDF
       const fileUrl = response.body.file.public_url;
       return res.json({ file_url: fileUrl });
     } catch (error) {
@@ -64,6 +71,6 @@ app.post(
   }
 );
 
-// 4) Start server
+// 4) Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
