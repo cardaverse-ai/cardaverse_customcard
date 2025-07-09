@@ -7,6 +7,6 @@
   },
   "dependencies": {
     "@shopify/shopify-api": "^5.0.0",
-    "multer": "^1.4.5"
+    "multer": "^2.0.1"
   }
 }
