@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "main": "api/upload.js",
   "scripts": {
-    "vercel-build": "echo Building…" 
+    "vercel-build": "echo Building…"
   },
   "dependencies": {
     "@shopify/shopify-api": "^5.0.0",
-    "multer": "^2.0.1"
+    "multer": "^2.0.1",
+    "cloudinary": "^2.7.0"
   }
 }
