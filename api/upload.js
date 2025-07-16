@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     return res.status(405).end('Method Not Allowed');
   }
 
-  res.setHeader('Access-Control-Allow-Origin', 'https://cardaverse.ai'); // Replace with your Shopify domain
+  res.setHeader('Access-Control-Allow-Origin', 'https://cardaverse.ai');
   res.setHeader('Access-Control-Allow-Methods', 'POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
@@ -66,6 +66,7 @@ export default async function handler(req, res) {
       const stream = cloudinary.uploader.upload_stream(
         {
           resource_type: 'raw',
+          format:        'pdf',
           public_id:     `cards/card_${Date.now()}`,
           folder:        'cards'
         },
