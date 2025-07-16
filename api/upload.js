@@ -15,7 +15,7 @@ if (!Shopify.Context.INITIALIZED) {
   Shopify.Context.initialize({
     API_KEY:         process.env.SHOPIFY_API_KEY,
     API_SECRET_KEY:  process.env.SHOPIFY_API_SECRET,
-    SCOPES:          [read_products, write_files, read_files, write_app_proxy, read_app_proxy],  // No additional Shopify scopes needed
+    SCOPES:          ['read_products', 'write_files', 'read_files', 'write_app_proxy', 'read_app_proxy'],
     HOST_NAME:       process.env.HOST_NAME.replace(/^https?:\/\//, ''),
     API_VERSION:     ApiVersion.July24,
     IS_EMBEDDED_APP: false,
