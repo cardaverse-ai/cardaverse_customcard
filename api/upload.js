@@ -30,10 +30,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// HMAC verification middleware
+/*// HMAC verification middleware
 function verifyHMAC(query) {
   return Shopify.Utils.validateHmac(query, process.env.SHOPIFY_API_SECRET);
-}
+}*/
 
 // Vercel serverless handler
 export default async function handler(req, res) {
@@ -46,10 +46,10 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
-  ```const { shop, timestamp, hmac } = req.query;
+  /*const { shop, timestamp, hmac } = req.query;
   if (!shop || !timestamp || !hmac || !verifyHMAC(req.query)) {
     return res.status(401).json({ error: 'Invalid or missing HMAC/shop/timestamp' });
-  }```
+  }*/
 
   // Parse multipart/form-data
   await new Promise((resolve, reject) => {
