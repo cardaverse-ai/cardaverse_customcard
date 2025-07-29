@@ -1,139 +1,157 @@
+// api/shopify-webhook.js
 import crypto from 'crypto';
 import { Resend } from 'resend';
 
-// Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Webhook endpoint for order fulfillment
+// Your custom card variant ID from the frontend
+const CUSTOM_CARD_VARIANT_ID = '46650379796721';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
   }
 
+  // Verify webhook authenticity
+  const hmac = req.headers['x-shopify-hmac-sha256'];
+  const body = JSON.stringify(req.body);
+  const hash = crypto
+    .createHmac('sha256', process.env.SHOPIFY_WEBHOOK_SECRET)
+    .update(body, 'utf8')
+    .digest('base64');
+
+  if (hash !== hmac) {
+    console.error('Webhook verification failed');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   try {
-    // Verify webhook authenticity
-    const hmac = req.headers['x-shopify-hmac-sha256'];
-    const body = JSON.stringify(req.body);
-    const hash = crypto
-      .createHmac('sha256', process.env.SHOPIFY_WEBHOOK_SECRET)
-      .update(body, 'utf8')
-      .digest('base64');
-
-    if (hash !== hmac) {
-      console.log('Webhook verification failed');
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
     const order = req.body;
-    console.log('Processing order:', order.id);
-
-    // Find line items with custom card designs
+    
+    // Check if order contains custom cards
     const customCardItems = order.line_items.filter(item => 
-      item.properties && 
-      item.properties.some(prop => prop.name === 'Design URL')
+      item.variant_id.toString() === CUSTOM_CARD_VARIANT_ID
     );
 
     if (customCardItems.length === 0) {
-      console.log('No custom card items found in order');
-      return res.status(200).json({ message: 'No custom cards to process' });
+      console.log(`Order ${order.order_number} contains no custom cards, skipping email`);
+      return res.status(200).json({ message: 'No custom cards in order' });
     }
 
-    // Extract download URLs and prepare email content
-    const downloadLinks = customCardItems.map(item => {
-      const designUrlProperty = item.properties.find(prop => prop.name === 'Design URL');
-      return {
-        title: item.title,
-        downloadUrl: designUrlProperty.value,
-        quantity: item.quantity
-      };
-    });
+    // Extract download links from line item properties
+    const downloadLinks = customCardItems
+      .map(item => {
+        const designUrlProperty = item.properties?.find(prop => 
+          prop.name === 'Design URL'
+        );
+        return {
+          quantity: item.quantity,
+          title: item.title,
+          downloadUrl: designUrlProperty?.value
+        };
+      })
+      .filter(item => item.downloadUrl); // Only include items with download URLs
+
+    if (downloadLinks.length === 0) {
+      console.log(`Order ${order.order_number} has custom cards but no design URLs`);
+      return res.status(200).json({ message: 'No design URLs found' });
+    }
 
     // Send email with download links
-    await sendDownloadEmail(order, downloadLinks);
-
-    res.status(200).json({ message: 'Email sent successfully' });
+    await sendCustomCardEmail(order, downloadLinks);
+    
+    console.log(`Successfully sent custom card email for order ${order.order_number}`);
+    return res.status(200).json({ message: 'Email sent successfully' });
 
   } catch (error) {
     console.error('Webhook processing error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
-async function sendDownloadEmail(order, downloadLinks) {
+async function sendCustomCardEmail(order, downloadLinks) {
   const customerEmail = order.email;
-  const customerName = order.billing_address?.first_name || 'Valued Customer';
-  
-  // Create download links HTML
+  const customerName = order.billing_address?.first_name || 'Customer';
+  const orderNumber = order.order_number;
+
+  // Generate HTML for download links
   const downloadLinksHtml = downloadLinks.map(item => `
     <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px;">
-      <h3 style="margin: 0 0 10px 0; color: #65744a;">${item.title}</h3>
-      <p style="margin: 0 0 10px 0;">Quantity: ${item.quantity}</p>
+      <h3 style="margin: 0 0 10px 0; color: #333;">${item.title}</h3>
+      <p style="margin: 0 0 10px 0; color: #666;">Quantity: ${item.quantity}</p>
       <a href="${item.downloadUrl}" 
-         style="display: inline-block; padding: 10px 20px; background-color: #65744a; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;"
-         download>
-        Download Your Card
+         style="display: inline-block; padding: 10px 20px; background-color: rgb(101, 116, 74); 
+                color: white; text-decoration: none; border-radius: 5px; font-weight: bold;"
+         target="_blank">
+        Download Your Custom Card
       </a>
     </div>
   `).join('');
 
-  const emailHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Your Custom Card Downloads</title>
-    </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #65744a; margin-bottom: 10px;">Thank You for Your Order!</h1>
-        <p style="font-size: 18px; margin: 0;">Your custom cards are ready for download</p>
+        <h1 style="color: rgb(101, 116, 74); margin-bottom: 10px;">Your Custom Cards Are Ready!</h1>
+        <p style="color: #666; font-size: 16px;">Order #${orderNumber}</p>
       </div>
       
       <div style="margin-bottom: 30px;">
-        <h2 style="color: #65744a;">Hello ${customerName},</h2>
-        <p>Thank you for your purchase! Your custom card designs are now ready for download.</p>
-        <p><strong>Order Number:</strong> ${order.order_number}</p>
-        <p><strong>Order Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
+        <p style="font-size: 16px; line-height: 1.6;">Hi ${customerName},</p>
+        <p style="font-size: 16px; line-height: 1.6;">
+          Thank you for your order! Your custom cards have been processed and are ready for download.
+          Please use the links below to download your personalized cards.
+        </p>
       </div>
 
       <div style="margin-bottom: 30px;">
-        <h2 style="color: #65744a;">Your Downloads:</h2>
+        <h2 style="color: #333; margin-bottom: 20px;">Your Downloads:</h2>
         ${downloadLinksHtml}
       </div>
 
-      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-        <h3 style="color: #65744a; margin-top: 0;">Important Notes:</h3>
-        <ul style="margin: 0; padding-left: 20px;">
-          <li>Download links are valid for 30 days</li>
-          <li>Save your files immediately after download</li>
-          <li>For best print quality, use high-resolution settings</li>
-          <li>Contact support if you experience any download issues</li>
+      <div style="margin-bottom: 30px; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
+        <h3 style="color: #333; margin-bottom: 10px;">Important Notes:</h3>
+        <ul style="color: #666; line-height: 1.6;">
+          <li>Download links are valid for 30 days from the order date</li>
+          <li>Files are high-resolution PDFs ready for printing</li>
+          <li>If you have any issues downloading, please contact our support team</li>
         </ul>
       </div>
 
       <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-        <p style="margin: 0 0 10px 0;">Questions? We're here to help!</p>
-        <p style="margin: 0;">
-          <a href="mailto:support@cardaverse.ai" style="color: #65744a;">support@cardaverse.ai</a>
-        </p>
+        <p style="color: #666; margin-bottom: 10px;">Need help? Contact us:</p>
+        <p style="color: rgb(101, 116, 74); font-weight: bold;">support@yourdomain.com</p>
       </div>
-    </body>
-    </html>
+    </div>
   `;
 
-  // Send email using Resend
-  const { data, error } = await resend.emails.send({
-    from: 'Cardaverse <orders@mail.cardaverse.ai>', // Replace with your verified domain
-    to: [customerEmail],
-    subject: `Your Custom Card Downloads - Order #${order.order_number}`,
-    html: emailHtml,
+  const textContent = `
+Hi ${customerName},
+
+Thank you for your order #${orderNumber}! Your custom cards have been processed and are ready for download.
+
+Your Download Links:
+${downloadLinks.map(item => `
+${item.title} (Quantity: ${item.quantity})
+Download: ${item.downloadUrl}
+`).join('\n')}
+
+Important Notes:
+- Download links are valid for 30 days from the order date
+- Files are high-resolution PDFs ready for printing
+- If you have any issues downloading, please contact our support team
+
+Need help? Contact us on our website.
+
+Best regards,
+Your Team
+  `;
+
+  await resend.emails.send({
+    from: 'orders@update.cardaverse.ai', // Replace with your verified Resend domain
+    to: customerEmail,
+    subject: `Your Custom Cards Are Ready - Order #${orderNumber}`,
+    html: htmlContent,
+    text: textContent,
   });
-
-  if (error) {
-    console.error('Email sending error:', error);
-    throw new Error('Failed to send email');
-  }
-
-  console.log('Email sent successfully:', data);
 }

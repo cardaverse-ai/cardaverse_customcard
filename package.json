@@ -6,9 +6,10 @@
     "vercel-build": "echo Building…"
   },
   "dependencies": {
-    "@shopify/shopify-api": "^5.0.0",
-    "multer": "^2.0.1",
+    "@shopify/shopify-api": "^11.14.1",
     "cloudinary": "^2.7.0",
-    "resend": "^4.7.0"
+    "multer": "^2.0.1",
+    "resend": "^4.7.0",
+    "sharp": "^0.34.3"
   }
 }
