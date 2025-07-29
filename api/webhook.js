@@ -1,4 +1,4 @@
-// api/shopify-webhook.js
+// api/webhook.js
 // Simple test version - deploy this first to test connectivity
 
 export default async function handler(req, res) {
