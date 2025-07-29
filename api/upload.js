@@ -1,4 +1,4 @@
-import { Shopify, ApiVersion } from '@shopify/shopify-api';
+//import { Shopify, ApiVersion } from '@shopify/shopify-api';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 
@@ -10,7 +10,7 @@ export const config = {
 // Initialize Multer for file uploads
 const upload = multer();
 
-// Initialize Shopify API context for HMAC verification
+/*// Initialize Shopify API context for HMAC verification
 if (!Shopify.Context.INITIALIZED) {
   Shopify.Context.initialize({
     API_KEY:         process.env.SHOPIFY_API_KEY,
@@ -21,7 +21,7 @@ if (!Shopify.Context.INITIALIZED) {
     IS_EMBEDDED_APP: false,
     SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
   });
-}
+}*/
 
 // Configure Cloudinary
 cloudinary.config({
@@ -29,11 +29,6 @@ cloudinary.config({
   api_key:    process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-
-/*// HMAC verification middleware
-function verifyHMAC(query) {
-  return Shopify.Utils.validateHmac(query, process.env.SHOPIFY_API_SECRET);
-}*/
 
 // Vercel serverless handler
 export default async function handler(req, res) {
@@ -45,11 +40,6 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'https://cardaverse.ai');
   res.setHeader('Access-Control-Allow-Methods', 'POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  /*const { shop, timestamp, hmac } = req.query;
-  if (!shop || !timestamp || !hmac || !verifyHMAC(req.query)) {
-    return res.status(401).json({ error: 'Invalid or missing HMAC/shop/timestamp' });
-  }*/
 
   // Parse multipart/form-data
   await new Promise((resolve, reject) => {
