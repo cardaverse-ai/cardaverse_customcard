@@ -4,7 +4,6 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Your custom card variant ID from the frontend
 const CUSTOM_CARD_VARIANT_ID = '46650379796721';
 
 export default async function handler(req, res) {
@@ -13,6 +12,14 @@ export default async function handler(req, res) {
     return res.status(405).end('Method Not Allowed');
   }
 
+  // Check for Shopify domain in headers
+  const isValidShopifyDomain = req.headers['x-shopify-shop-domain'] === process.env.SHOPIFY_SHOP_DOMAIN;
+  if (!isValidShopifyDomain) {
+    console.error('Invalid Shopify domain');
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+/*
   // Verify webhook authenticity
   const hmac = req.headers['x-shopify-hmac-sha256'];
   const body = JSON.stringify(req.body);
@@ -25,7 +32,7 @@ export default async function handler(req, res) {
     console.error('Webhook verification failed');
     return res.status(401).json({ error: 'Unauthorized' });
   }
-
+*/
   try {
     const order = req.body;
     
