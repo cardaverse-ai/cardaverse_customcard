@@ -11,14 +11,14 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
   }
-
+/*
   // Check for Shopify domain in headers
   const isValidShopifyDomain = req.headers['x-shopify-shop-domain'] === process.env.SHOPIFY_SHOP_DOMAIN;
   if (!isValidShopifyDomain) {
     console.error('Invalid Shopify domain');
     return res.status(403).json({ error: 'Forbidden' });
   }
-
+*/
 /*
   // Verify webhook authenticity
   const hmac = req.headers['x-shopify-hmac-sha256'];
