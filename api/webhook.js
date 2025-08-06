@@ -1,4 +1,4 @@
-// api/shopify-webhook.js
+// api/webhook.js
 import crypto from 'crypto';
 import { Resend } from 'resend';
 
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const downloadLinks = customCardItems
       .map(item => {
         const designUrlProperty = item.properties?.find(prop => 
-          prop.name === '_design_url'
+          prop.name === '_Design URL'
         );
         return {
           quantity: item.quantity,
