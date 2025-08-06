@@ -11,28 +11,7 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
   }
-/*
-  // Check for Shopify domain in headers
-  const isValidShopifyDomain = req.headers['x-shopify-shop-domain'] === process.env.SHOPIFY_SHOP_DOMAIN;
-  if (!isValidShopifyDomain) {
-    console.error('Invalid Shopify domain');
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-*/
-/*
-  // Verify webhook authenticity
-  const hmac = req.headers['x-shopify-hmac-sha256'];
-  const body = JSON.stringify(req.body);
-  const hash = crypto
-    .createHmac('sha256', process.env.SHOPIFY_WEBHOOK_SECRET)
-    .update(body, 'utf8')
-    .digest('base64');
 
-  if (hash !== hmac) {
-    console.error('Webhook verification failed');
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-*/
   try {
     const order = req.body;
     
@@ -50,7 +29,7 @@ export default async function handler(req, res) {
     const downloadLinks = customCardItems
       .map(item => {
         const designUrlProperty = item.properties?.find(prop => 
-          prop.name === 'Design URL'
+          prop.name === '_design_url'
         );
         return {
           quantity: item.quantity,
@@ -127,7 +106,7 @@ async function sendCustomCardEmail(order, downloadLinks) {
 
       <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
         <p style="color: #666; margin-bottom: 10px;">Need help? Contact us:</p>
-        <p style="color: rgb(101, 116, 74); font-weight: bold;">support@yourdomain.com</p>
+        <p style="color: rgb(101, 116, 74); font-weight: bold;">tony@cardaverse.ai</p>
       </div>
     </div>
   `;
@@ -148,7 +127,7 @@ Important Notes:
 - Files are high-resolution PDFs ready for printing
 - If you have any issues downloading, please contact our support team
 
-Need help? Contact us at support@yourdomain.com
+Need help? Contact us at tony@cardaverse.ai
 
 Best regards,
 Your Team
