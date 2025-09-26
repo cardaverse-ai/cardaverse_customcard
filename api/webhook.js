@@ -25,36 +25,37 @@ export default async function handler(req, res) {
         item.variant_id.toString() !== CUSTOM_CARD_VARIANT_ID
     );
 
-    if (customCardItems.length === 0) {
-      console.log(`Order ${order.order_number} contains no custom cards, skipping email`);
-      return res.status(200).json({ message: 'No custom cards in order' });
-    }
+    // Handle Custom Cards:
 
+    if (customCardItems.length > 0) {
     // Extract download links from line item properties
-    const downloadLinks = customCardItems
-      .map(item => {
-        const designUrlProperty = item.properties?.find(prop => 
-          prop.name === '_Design URL'
-        );
-        return {
-          quantity: item.quantity,
-          title: item.title,
-          downloadUrl: designUrlProperty?.value
-        };
-      })
-      .filter(item => item.downloadUrl); // Only include items with download URLs
+        const downloadLinks = customCardItems
+        .map(item => {
+            const designUrlProperty = item.properties?.find(prop => 
+            prop.name === '_Design URL'
+            );
+            return {
+                quantity: item.quantity,
+                title: item.title,
+                downloadUrl: designUrlProperty?.value
+            };
+        })
+        .filter(item => item.downloadUrl); // Only include items with download URLs
 
-    if (downloadLinks.length === 0) {
-      console.log(`Order ${order.order_number} has custom cards but no design URLs`);
-      return res.status(200).json({ message: 'No design URLs found' });
+        if (downloadLinks.length > 0) {
+            await sendCustomCardEmail(order, downloadLinks);
+            console.log("Sent custom card email for order ${order.order_number}");
+        } else {
+            console.log("order ${order.order_number} has cusotm cards but no design URLS")
+        }
     }
 
-    // Send email with download links
-    await sendCustomCardEmail(order, downloadLinks);
-    
-    console.log(`Successfully sent custom card email for order ${order.order_number}`);
-    return res.status(200).json({ message: 'Email sent successfully' });
+    if (productCardItems > 0) {
+        await sendProductCardEmail(order, productCardItems);
+        console.log("Sent product card email for order ${order.order_number}")
+    }
 
+    return res.status(200).json({ message: 'Webhook processed successfully' });
   } catch (error) {
     console.error('Webhook processing error:', error);
     return res.status(500).json({ error: 'Internal server error' });
