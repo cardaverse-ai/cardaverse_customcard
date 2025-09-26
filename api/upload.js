@@ -66,7 +66,15 @@ export default async function handler(req, res) {
       stream.end(req.file.buffer);
     });
 
-    return res.status(200).json({ file_url: result.secure_url });
+    const signedUrl = cloudinary.utils.url(result.public_id + '.pdf', {
+      resource_type: 'raw',
+      type: 'upload',
+      secure: true,
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 // 30 days
+    });
+
+    return res.status(200).json({ file_url: signedUrl });
   } catch (error) {
     console.error('Cloudinary upload failed:', error);
     return res.status(500).json({ error: 'Upload to Cloudinary failed' });
