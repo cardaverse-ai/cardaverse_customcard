@@ -20,6 +20,11 @@ export default async function handler(req, res) {
       item.variant_id.toString() === CUSTOM_CARD_VARIANT_ID
     );
 
+    // Is product card if not custom card
+    const productCardItems = order.line_items.filter(item =>
+        item.variant_id.toString() !== CUSTOM_CARD_VARIANT_ID
+    );
+
     if (customCardItems.length === 0) {
       console.log(`Order ${order.order_number} contains no custom cards, skipping email`);
       return res.status(200).json({ message: 'No custom cards in order' });
