@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       stream.end(req.file.buffer);
     });
 
-    const signedUrl = cloudinary.utils.url(result.public_id + '.pdf', {
+    const signedUrl = cloudinary.utils.url(result.public_id, {
       resource_type: 'raw',
       type: 'upload',
       secure: true,
