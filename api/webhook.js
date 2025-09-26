@@ -1,4 +1,4 @@
-// api/webhook.js
+// api/shopify-webhook.js
 import crypto from 'crypto';
 import { Resend } from 'resend';
 
