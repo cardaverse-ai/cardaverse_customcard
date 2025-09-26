@@ -59,7 +59,6 @@ export default async function handler(req, res) {
           format:        'pdf',
           public_id:     `card_${Date.now()}`,
           folder:        'cards',
-          access_mode:   'public',
           format:        'pdf'
         },
         (error, result) => error ? reject(error) : resolve(result)
