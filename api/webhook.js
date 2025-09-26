@@ -44,16 +44,34 @@ export default async function handler(req, res) {
 
         if (downloadLinks.length > 0) {
             await sendCustomCardEmail(order, downloadLinks);
-            console.log("Sent custom card email for order ${order.order_number}");
+            console.log(`Sent custom card email for order ${order.order_number}`);
         } else {
-            console.log("order ${order.order_number} has cusotm cards but no design URLS")
+            console.log(`order ${order.order_number} has cusotm cards but no design URLS`)
         }
     }
 
-    if (productCardItems > 0) {
-        await sendProductCardEmail(order, productCardItems);
-        console.log("Sent product card email for order ${order.order_number}")
+    if (productCardItems.length > 0) {
+    // Extract download URLs from properties
+    const productDownloadLinks = productCardItems
+      .map(item => {
+        const designUrlProperty = item.properties?.find(
+          prop => prop.name === '_Design URL'
+        );
+        return {
+          quantity: item.quantity,
+          title: item.title,
+          downloadUrl: designUrlProperty?.value
+        };
+      })
+      .filter(item => item.downloadUrl); // only keep items with valid URLs
+
+    if (productDownloadLinks.length > 0) {
+      await sendProductCardEmail(order, productDownloadLinks);
+      console.log(`Sent product card email for order ${order.order_number}`);
+    } else {
+      console.log(`Order ${order.order_number} has product cards but no design URLs`);
     }
+}
 
     return res.status(200).json({ message: 'Webhook processed successfully' });
   } catch (error) {
@@ -143,6 +161,64 @@ Your Team
     from: 'orders@update.cardaverse.ai',
     to: customerEmail,
     subject: `Your Custom Cards Are Ready - Order #${orderNumber}`,
+    html: htmlContent,
+    text: textContent,
+  });
+}
+
+async function sendProductCardEmail(order, downloadLinks) {
+  const customerEmail = order.email;
+  const customerName = order.billing_address?.first_name || 'Customer';
+  const orderNumber = order.order_number;
+
+  const productDownloadLinksHtml = downloadLinks.map(item => `
+    <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px;">
+      <h3 style="margin: 0 0 10px 0; color: #333;">${item.title}</h3>
+      <p style="margin: 0 0 10px 0; color: #666;">Quantity: ${item.quantity}</p>
+      <a href="${item.downloadUrl}" 
+         style="display: inline-block; padding: 10px 20px; background-color: rgb(101, 116, 74); 
+                color: white; text-decoration: none; border-radius: 5px; font-weight: bold;"
+         target="_blank">
+        Download Your Card
+      </a>
+    </div>
+  `).join('');
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: rgb(101, 116, 74); margin-bottom: 10px;">Your Cards Are Ready!</h1>
+        <p style="color: #666; font-size: 16px;">Order #${orderNumber}</p>
+      </div>
+      <div style="margin-bottom: 30px;">
+        <p style="font-size: 16px; line-height: 1.6;">Hi ${customerName},</p>
+        <p style="font-size: 16px; line-height: 1.6;">
+          Thank you for your order! Your cards have been processed and are ready for download.
+        </p>
+      </div>
+      <div style="margin-bottom: 30px;">
+        <h2 style="color: #333; margin-bottom: 20px;">Your Downloads:</h2>
+        ${productDownloadLinksHtml}
+      </div>
+    </div>
+  `;
+
+  const textContent = `
+Hi ${customerName},
+
+Thank you for your order #${orderNumber}! Your cards have been processed and are ready for download.
+
+Your Download Links:
+${downloadLinks.map(item => `
+${item.title} (Quantity: ${item.quantity})
+Download: ${item.downloadUrl}
+`).join('\n')}
+  `;
+
+  await resend.emails.send({
+    from: 'orders@update.cardaverse.ai',
+    to: customerEmail,
+    subject: `Your Cards Are Ready - Order #${orderNumber}`,
     html: htmlContent,
     text: textContent,
   });
