@@ -57,7 +57,7 @@ export default async function handler(req, res) {
         {
           resource_type: 'raw',
           format:        'pdf',
-          public_id:     `cards/card_${Date.now()}`,
+          public_id:     `card_${Date.now()}`,
           folder:        'cards',
           access_mode:   'public',
           format:        'pdf'
