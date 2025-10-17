@@ -253,11 +253,18 @@ Download: ${item.downloadUrl}
 async function generateCardPDF({ message, font, color, size, productImgURL, templateImgURL, insideTemplateURL }) {
   const pdf = new jsPDF({ unit: 'in', format: 'letter', compress: true });
 
-  // fetch images
+  // fetch image as Buffer
   async function fetchImage(url) {
     const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to fetch image: ${url}`);
     const buffer = await res.arrayBuffer();
-    return Buffer.from(buffer).toString('base64');
+    return Buffer.from(buffer);
+  }
+
+  // verify PNG signature
+  function isPng(buffer) {
+    const pngSignature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    return buffer.slice(0, 8).equals(pngSignature);
   }
 
   const [templateImg, productImg, insideImg] = await Promise.all([
@@ -266,13 +273,17 @@ async function generateCardPDF({ message, font, color, size, productImgURL, temp
     fetchImage(insideTemplateURL),
   ]);
 
+  if (!isPng(templateImg)) throw new Error('Template image is not a valid PNG');
+  if (!isPng(productImg)) throw new Error('Product image is not a valid PNG');
+  if (!isPng(insideImg)) throw new Error('Inside template image is not a valid PNG');
+
   // page 1
-  pdf.addImage(`data:image/png;base64,${templateImg}`, 'PNG', 0, 0, 8.5, 11);
-  pdf.addImage(`data:image/png;base64,${productImg}`, 'PNG', 0.24, -3.75, 4, 4, null, null, 270);
+  pdf.addImage(templateImg.toString('base64'), 'PNG', 0, 0, 8.5, 11);
+  pdf.addImage(productImg.toString('base64'), 'PNG', 0.24, -3.75, 4, 4, null, null, 270);
 
   // page 2
   pdf.addPage();
-  pdf.addImage(`data:image/png;base64,${insideImg}`, 'PNG', 0, 0, 8.5, 11);
+  pdf.addImage(insideImg.toString('base64'), 'PNG', 0, 0, 8.5, 11);
   pdf.setFontSize(parseInt(size.replace('px', '')));
   pdf.setTextColor(color);
   pdf.setFont(font);
@@ -280,7 +291,7 @@ async function generateCardPDF({ message, font, color, size, productImgURL, temp
 
   const pdfBlob = pdf.output('arraybuffer');
 
-  // upload to cloudinary
+  // upload to Cloudinary
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       { resource_type: 'raw', folder: 'digital_cards' },
