@@ -54,9 +54,8 @@ export default async function handler(req, res) {
     // Extract download URLs from properties
     const productDownloadLinks = productCardItems
       .map(item => {
-        const designUrlProperty = item.properties?.find(
-          prop => prop.name === '_Design URL'
-        );
+        const designUrlProperty = 
+            item.properties?.find(prop => prop.name === 'Unwatermarked Template');
         return {
           quantity: item.quantity,
           title: item.title,
