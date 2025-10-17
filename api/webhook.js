@@ -54,26 +54,45 @@ export default async function handler(req, res) {
     }
 
     if (productCardItems.length > 0) {
-    // Extract download URLs from properties
-    const productDownloadLinks = productCardItems
-      .map(item => {
-        const designUrlProperty = 
-            item.properties?.find(prop => prop.name === 'Unwatermarked Template');
-        return {
-          quantity: item.quantity,
-          title: item.title,
-          downloadUrl: designUrlProperty?.value
-        };
-      })
-      .filter(item => item.downloadUrl); // only keep items with valid URLs
+        for (const item of productCardItems) {
+            const props = item.properties || [];
 
-    if (productDownloadLinks.length > 0) {
-      await sendProductCardEmail(order, productDownloadLinks);
-      console.log(`Sent product card email for order ${order.order_number}`);
-    } else {
-      console.log(`Order ${order.order_number} has product cards but no design URLs`);
+            const message = props.find(p => p.name === 'Custom Message')?.value || '';
+            const font = props.find(p => p.name === 'Font')?.value || 'helvetica';
+            const color = props.find(p => p.name === 'Color')?.value || '#000000';
+            const size = props.find(p => p.name === 'Size')?.value || '20px';
+            const productImgURL = props.find(p => p.name === 'Product Image')?.value;
+            const templateImgURL = props.find(p => p.name === 'Template Image')?.value;
+            const insideTemplateURL = props.find(p => p.name === 'Inside Template')?.value;
+
+            if (productImgURL && templateImgURL && insideTemplateURL) {
+            console.log(`Generating PDF for product: ${item.title}`);
+
+            const pdfUrl = await generateCardPDF({
+                message,
+                font,
+                color,
+                size,
+                productImgURL,
+                templateImgURL,
+                insideTemplateURL
+            });
+
+            console.log('Generated and uploaded PDF:', pdfUrl);
+
+            // Attach this URL to email
+            await sendProductCardEmail(order, [
+                {
+                quantity: item.quantity,
+                title: item.title,
+                downloadUrl: pdfUrl
+                }
+            ]);
+            } else {
+            console.log(`Missing image URLs for ${item.title}`);
+            }
+        }
     }
-}
 
     return res.status(200).json({ message: 'Webhook processed successfully' });
   } catch (error) {
