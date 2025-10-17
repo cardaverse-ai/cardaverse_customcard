@@ -1,6 +1,9 @@
 // api/shopify-webhook.js
 import crypto from 'crypto';
 import { Resend } from 'resend';
+import { jsPDF } from "jspdf";
+import fetch from "node-fetch";
+import { v2 as cloudinary } from "cloudinary";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
