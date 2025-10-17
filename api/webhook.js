@@ -300,7 +300,7 @@ async function generateCardPDF({ message, font, color, size, productImgURL, temp
   // upload to Cloudinary
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
-      { resource_type: 'raw', folder: 'digital_cards' },
+      { resource_type: 'raw', folder: 'digital_cards', format: 'pdf' },
       (error, result) => {
         if (error) reject(error);
         else resolve(result.secure_url);
