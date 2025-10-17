@@ -226,3 +226,47 @@ Download: ${item.downloadUrl}
   });
   
 }
+
+// function to generate pdf
+async function generateCardPDF({ message, font, color, size, productImgURL, templateImgURL, insideTemplateURL }) {
+  const pdf = new jsPDF({ unit: 'in', format: 'letter', compress: true });
+
+  // fetch images
+  async function fetchImage(url) {
+    const res = await fetch(url);
+    const buffer = await res.arrayBuffer();
+    return Buffer.from(buffer).toString('base64');
+  }
+
+  const [templateImg, productImg, insideImg] = await Promise.all([
+    fetchImage(templateImgURL),
+    fetchImage(productImgURL),
+    fetchImage(insideTemplateURL),
+  ]);
+
+  // page 1
+  pdf.addImage(`data:image/png;base64,${templateImg}`, 'PNG', 0, 0, 8.5, 11);
+  pdf.addImage(`data:image/png;base64,${productImg}`, 'PNG', 0.24, -3.75, 4, 4, null, null, 270);
+
+  // page 2
+  pdf.addPage();
+  pdf.addImage(`data:image/png;base64,${insideImg}`, 'PNG', 0, 0, 8.5, 11);
+  pdf.setFontSize(parseInt(size.replace('px', '')));
+  pdf.setTextColor(color);
+  pdf.setFont(font);
+  pdf.text(message, 3.64, 0.47, { maxWidth: 3.6, angle: 270 });
+
+  const pdfBlob = pdf.output('arraybuffer');
+
+  // upload to cloudinary
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { resource_type: 'raw', folder: 'digital_cards' },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result.secure_url);
+      }
+    );
+    uploadStream.end(Buffer.from(pdfBlob));
+  });
+}
