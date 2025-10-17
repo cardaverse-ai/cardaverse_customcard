@@ -24,6 +24,9 @@ export default async function handler(req, res) {
   try {
     const order = req.body;
     
+    // respond instantly so Shopify stops retrying
+    res.status(200).json({ message: 'Webhook received, processing started' });
+
     // Check if order contains custom cards
     const customCardItems = order.line_items.filter(item => 
       item.variant_id.toString() === CUSTOM_CARD_VARIANT_ID
