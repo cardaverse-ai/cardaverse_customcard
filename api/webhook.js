@@ -61,9 +61,9 @@ export default async function handler(req, res) {
             const font = props.find(p => p.name === 'Font')?.value || 'helvetica';
             const color = props.find(p => p.name === 'Color')?.value || '#000000';
             const size = props.find(p => p.name === 'Size')?.value || '20px';
-            const productImgURL = props.find(p => p.name === 'Product Image')?.value;
-            const templateImgURL = props.find(p => p.name === 'Template Image')?.value;
-            const insideTemplateURL = props.find(p => p.name === 'Inside Template')?.value;
+            const productImgURL = props.find(p => p.name === '_Product Image')?.value;
+            const templateImgURL = props.find(p => p.name === '_Template Image')?.value;
+            const insideTemplateURL = props.find(p => p.name === '_Inside Template')?.value;
 
             if (productImgURL && templateImgURL && insideTemplateURL) {
             console.log(`Generating PDF for product: ${item.title}`);
