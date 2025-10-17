@@ -89,7 +89,10 @@ export default async function handler(req, res) {
                 }
             ]);
             } else {
-            console.log(`Missing image URLs for ${item.title}`);
+                if (!productImgURL) console.log('Missing product image');
+                if (!templateImgURL) console.log('Missing template image');
+                if (!insideTemplateURL) console.log('Missing inside template');
+                console.log(`Missing image URLs for ${item.title}`);
             }
         }
     }
